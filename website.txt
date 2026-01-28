@@ -1,0 +1,47 @@
+website created based on the next.js 16th version so we dont add the src/ -- because it doesnt support the middleware.ts in root section
+so we added all the files inside the app/ not in src/app because we wanted middleware for admin login support 
+
+and we have various api calls regarding the app 
+
+api/
+    admin/login  --- login access for login
+    admin/logout --- logout access for logout
+    admin/post-job  -- to post a job 
+    contact -- to contact from website 
+    contact-messages -- to view contact messages in the admin dashboard
+    job-list -- to list the jobs in admin dashboard
+    jobs -- to view the jobs in carrer page
+
+middleware.ts in root --- to avoid the unneccessary login with direct url from the browserr . it stops by adding the cookies called admin_login = true 
+ all folders
+
+Admin types email+password in /admin/login. The client calls /api/admin/login. Server checks DB; if ok sets an HttpOnly cookie admin_logged_in=true and returns success. Client then redirects to /admin/dashboard.
+
+What happens: clicking submit triggers a function that fetch()es the API.
+
+Key snippet (client-side):
+
+// client: on form submit
+async function handleLogin(e) {
+  e.preventDefault();
+  const res = await fetch("/api/admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const result = await res.json();
+  if (result.success) {
+    router.push("/admin/dashboard");
+  } else {
+    setError("Invalid email or password");
+  }
+}
+
+
+Why: This sends credentials to server route handler. The client does NOT handle cookie setting — server does.
+
+Step 4.3 — Redirect / Dashboard access
+
+The client redirected to /admin/dashboard will render the dashboard UI. Important: since admin_logged_in is an HttpOnly cookie, client-side code cannot read it via document.cookie. To protect server-rendered admin pages you should validate cookie on server (middleware) — more below.
+
+
