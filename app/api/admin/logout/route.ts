@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
+import { ADMIN_SESSION_COOKIE } from "@/lib/adminSession";
 
-export async function POST(req: NextRequest){
-    const res =  NextResponse.json({sucess:true})
+export async function POST() {
+  const response = NextResponse.json({ success: true });
+  const expired = {
+    value: "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict" as const,
+    path: "/",
+    maxAge: 0,
+  };
 
-    res.cookies.set({
-        name: "admin_logged_in",
-        value: "",
-        httpOnly: true,
-        path: "/",
-        maxAge: 0,
-    });
-    return res;
+  response.cookies.set({ name: ADMIN_SESSION_COOKIE, ...expired });
+  response.cookies.set({ name: "admin_logged_in", ...expired });
+  return response;
 }

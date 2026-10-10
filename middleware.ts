@@ -1,25 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { ADMIN_SESSION_COOKIE, verifyAdminSession } from "@/lib/adminSession";
 
-export function middleware(req: NextRequest) {
-
-    console.log("MIDDLEWARE RUNNING → Path:", req.nextUrl.pathname);
+export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // Allow login page and login API
-  if (
-    pathname.startsWith("/admin/login") ||
-    pathname.startsWith("/api/admin/login")
-  ) {
-    console.log("RETURNED THE DATA")
+  if (pathname.startsWith("/admin/login") || pathname.startsWith("/api/admin/login")) {
     return NextResponse.next();
   }
 
-  // PROTECT ALL ADMIN ROUTES
   if (pathname.startsWith("/admin")) {
-    const isLoggedIn = req.cookies.get("admin_logged_in")?.value === "true";
-
-    if (!isLoggedIn) {
+    const session = await verifyAdminSession(req.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+    if (!session) {
       return NextResponse.redirect(new URL("/admin/login", req.url));
     }
   }
