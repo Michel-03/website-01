@@ -2,26 +2,36 @@ import { NextResponse } from "next/server";
 import { sendContactEmail } from "@/lib/contactMail";
 import { getSupabase } from "@/lib/supabaseclient";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const UNAVAILABLE = "We could not send your message right now. Please try again or email info@byteanalytics.co.in.";
+
+function field(value: unknown, max: number) {
+  return String(value ?? "").trim().slice(0, max);
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const email = String(body.email ?? "").trim();
-    const message = String(body.message ?? "").trim();
+    const body = await req.json().catch(() => ({}));
+    const inquiry = {
+      firstName: field(body.firstName, 100),
+      lastName: field(body.lastName, 100),
+      email: field(body.email, 254),
+      phone: field(body.phone, 40),
+      message: field(body.message, 5000),
+    };
 
-    if (!email || !message) {
+    if (!inquiry.email || !inquiry.message) {
       return NextResponse.json(
         { success: false, error: "Email and message are required." },
         { status: 400 }
       );
     }
-
-    const inquiry = {
-      firstName: String(body.firstName ?? "").trim(),
-      lastName: String(body.lastName ?? "").trim(),
-      email,
-      phone: String(body.phone ?? "").trim(),
-      message,
-    };
+    if (!EMAIL_PATTERN.test(inquiry.email)) {
+      return NextResponse.json(
+        { success: false, error: "Please enter a valid email address." },
+        { status: 400 }
+      );
+    }
 
     const supabase = getSupabase();
     const { error } = await supabase.from("contact_form").insert({
@@ -33,22 +43,21 @@ export async function POST(req: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.error("Contact insert failed:", error.message);
+      return NextResponse.json({ success: false, error: UNAVAILABLE }, { status: 500 });
     }
 
     let mailed = true;
     try {
       await sendContactEmail(inquiry);
-    } catch (error) {
+    } catch (mailError) {
       mailed = false;
-      console.error(error instanceof Error ? error.message : "Contact email failed");
+      console.error("Contact email failed:", mailError instanceof Error ? mailError.message : mailError);
     }
 
     return NextResponse.json({ success: true, mailed });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Server error" },
-      { status: 503 }
-    );
+    console.error("Contact request failed:", error instanceof Error ? error.message : error);
+    return NextResponse.json({ success: false, error: UNAVAILABLE }, { status: 503 });
   }
 }

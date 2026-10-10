@@ -43,6 +43,7 @@ const navItems = [
       },
     ],
   },
+  { label: "Careers", href: "/careers" },
   { label: "Our products", href: "/products" },
   {
     label: "AI in industry",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { submitContact } from "@/lib/submitContact";
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export default function ContactSection() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -25,23 +27,20 @@ export default function ContactSection() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSuccess("");
 
-    const payload = {
-      ...formData,
+    const result = await submitContact({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
       phone: `${formData.countryCode}${formData.phone}`,
-    };
-
-    const res = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      message: formData.message,
     });
-
-    const data = await res.json();
     setLoading(false);
 
-    if (data.success) {
+    if (result.ok) {
       const displayName = `${formData.firstName} ${formData.lastName}`.trim();
+      setIsError(false);
       setSuccess(
         `Thank you${displayName ? `, ${displayName}` : ""}! Our team will contact you soon.`
       );
@@ -55,7 +54,8 @@ export default function ContactSection() {
         message: "",
       });
     } else {
-      setSuccess("Something went wrong. Try again.");
+      setIsError(true);
+      setSuccess(result.error);
     }
   };
 
@@ -187,7 +187,7 @@ export default function ContactSection() {
           </div>
 
           {success && (
-            <p className="text-sm text-green-600 mt-4 md:col-span-2">
+            <p className={`text-sm mt-4 md:col-span-2 ${isError ? "text-red-600" : "text-green-600"}`}>
               {success}
             </p>
           )}

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabaseclient";
 
-const MAX_RESUME_BYTES = 5 * 1024 * 1024;
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+// Vercel rejects request bodies above 4.5 MB before this handler runs.
+const MAX_RESUME_BYTES = 4 * 1024 * 1024;
+const ALLOWED_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
 const FIELDS = [
   "applicant_name",
   "applicant_email",
@@ -28,9 +29,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Please attach your resume." }, { status: 400 });
     }
     if (resumeFile.size > MAX_RESUME_BYTES) {
-      return NextResponse.json({ success: false, message: "Resume must be 5 MB or smaller." }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Resume must be 4 MB or smaller." }, { status: 400 });
     }
-    if (resumeFile.type && !ALLOWED_TYPES.includes(resumeFile.type)) {
+    const extension = resumeFile.name.split(".").pop()?.toLowerCase() ?? "";
+    const contentType = ALLOWED_TYPES[extension];
+    if (!contentType || (resumeFile.type && resumeFile.type !== contentType)) {
       return NextResponse.json({ success: false, message: "Resume must be a PDF or Word document." }, { status: 400 });
     }
 
@@ -52,14 +55,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "This role is no longer open." }, { status: 404 });
     }
 
-    const extension = resumeFile.name.split(".").pop()?.toLowerCase() || "pdf";
     const filePath = `${job.id}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from("resumes")
-      .upload(filePath, resumeFile, { contentType: resumeFile.type || undefined });
+      .upload(filePath, resumeFile, { contentType });
 
     if (uploadError) {
-      return NextResponse.json({ success: false, message: uploadError.message }, { status: 500 });
+      console.error("Resume upload failed:", uploadError.message);
+      return NextResponse.json(
+        { success: false, message: "We could not upload your resume. Please try again." },
+        { status: 500 }
+      );
     }
 
     const { error } = await supabase.from("applications").insert({
@@ -72,13 +78,18 @@ export async function POST(req: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      console.error("Application insert failed:", error.message);
+      return NextResponse.json(
+        { success: false, message: "We could not save your application. Please try again." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error("Application request failed:", err instanceof Error ? err.message : err);
     return NextResponse.json(
-      { success: false, message: err instanceof Error ? err.message : "Server error" },
+      { success: false, message: "We could not submit your application. Please try again." },
       { status: 500 }
     );
   }

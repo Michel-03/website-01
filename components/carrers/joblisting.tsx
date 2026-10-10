@@ -96,9 +96,7 @@ export default function CareersJobList() {
         {!loading && error && (
           <div className="mt-6 rounded-2xl border border-red-100 bg-white p-6">
             <p className="font-semibold text-[#221c4a]">Open roles are temporarily unavailable.</p>
-            <p className="mt-1 text-sm text-gray-600">
-              The careers database is not responding. You can still reach the talent team directly.
-            </p>
+            <p className="mt-1 text-sm text-gray-600">{error}</p>
             <Link href="/contact" className="mt-3 inline-flex text-sm font-semibold text-[#605BAD]">Contact talent team</Link>
           </div>
         )}

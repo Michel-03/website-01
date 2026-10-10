@@ -1,28 +1,13 @@
-import { existsSync, readFileSync } from "fs";
-import path from "path";
-
-function readEnvFile(name: string) {
-  const filePath = path.join(process.cwd(), name);
-  if (!existsSync(filePath)) return {};
-
-  const values: Record<string, string> = {};
-  for (const line of readFileSync(filePath, "utf8").split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const separator = trimmed.indexOf("=");
-    if (separator === -1) continue;
-    values[trimmed.slice(0, separator).trim()] = trimmed.slice(separator + 1).trim();
-  }
-  return values;
+function cleanEnv(value: string) {
+  const trimmed = value.trim();
+  const quoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"));
+  return quoted ? trimmed.slice(1, -1).trim() : trimmed;
 }
 
 export function readLocalEnv(name: string) {
-  const file = {
-    ...readEnvFile(".env"),
-    ...readEnvFile(".env.local"),
-  };
-
-  return process.env[name] || file[name] || "";
+  return cleanEnv(process.env[name] ?? "");
 }
 
 export function getLocalAdminCredentials() {

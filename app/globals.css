@@ -31,8 +31,8 @@ body {
 }
 
 .reveal-section {
-  opacity: 0;
-  transform: translateY(18px);
+  opacity: 1;
+  transform: none;
 }
 
 .reveal-section.is-visible {
