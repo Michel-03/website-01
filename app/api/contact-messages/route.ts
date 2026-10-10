@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+import { assertAdmin } from "@/lib/requireAdmin";
 import { supabase } from "../../../lib/supabaseclient";
 
 export async function GET() {
+  const denied = await assertAdmin();
+  if (denied) return denied;
+
   try {
     const { data, error } = await supabase
       .from("contact_form")

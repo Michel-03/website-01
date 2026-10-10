@@ -1,105 +1,85 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabaseclient";
+
+const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const FIELDS = [
+  "applicant_name",
+  "applicant_email",
+  "applicant_phone",
+  "current_role_name",
+  "total_experience",
+  "skills",
+  "expected_salary",
+  "cover_letter",
+];
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const resumeFile = formData.get("resume") as File;
-    const slug = formData.get("slug") as string;
-    const jobId = Number(formData.get("slug"));
+    const resumeFile = formData.get("resume");
+    const slug = String(formData.get("slug") ?? "").trim();
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    if (!(resumeFile instanceof File) || resumeFile.size === 0) {
+      return NextResponse.json({ success: false, message: "Please attach your resume." }, { status: 400 });
+    }
+    if (resumeFile.size > MAX_RESUME_BYTES) {
+      return NextResponse.json({ success: false, message: "Resume must be 5 MB or smaller." }, { status: 400 });
+    }
+    if (resumeFile.type && !ALLOWED_TYPES.includes(resumeFile.type)) {
+      return NextResponse.json({ success: false, message: "Resume must be a PDF or Word document." }, { status: 400 });
+    }
 
-    // Fetch job details
+    const fields: Record<string, string> = {};
+    for (const key of FIELDS) fields[key] = String(formData.get(key) ?? "").trim();
+
+    if (!fields.applicant_name || !fields.applicant_email) {
+      return NextResponse.json({ success: false, message: "Name and email are required." }, { status: 400 });
+    }
+
+    const supabase = getSupabase();
     const { data: job } = await supabase
       .from("job")
       .select("id, title")
-      .eq("id", jobId)
-      .single();
+      .eq("slug", slug)
+      .maybeSingle();
 
-    // Upload resume
-    const fileExt = resumeFile.name.split(".").pop();
-    const filePath = `resumes/${crypto.randomUUID()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("resumes")
-      .upload(filePath, resumeFile, {
-        contentType: resumeFile.type,
-      });
-
-    if (uploadError) {
-      return NextResponse.json({
-        success: false,
-        message: uploadError.message,
-      });
+    if (!job) {
+      return NextResponse.json({ success: false, message: "This role is no longer open." }, { status: 404 });
     }
 
-    // Public URL
-    const { data: publicUrl } = supabase.storage
+    const extension = resumeFile.name.split(".").pop()?.toLowerCase() || "pdf";
+    const filePath = `${job.id}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
       .from("resumes")
-      .getPublicUrl(filePath);
+      .upload(filePath, resumeFile, { contentType: resumeFile.type || undefined });
 
-    // Insert into applications table
-    const fields: any = {};
-    formData.forEach((v, k) => {
-      if (k !== "resume" && k !== "slug") fields[k] = v;
-    });
+    if (uploadError) {
+      return NextResponse.json({ success: false, message: uploadError.message }, { status: 500 });
+    }
 
     const { error } = await supabase.from("applications").insert({
       ...fields,
-      job_id: job?.id,
-      job_title: job?.title,
+      job_id: job.id,
+      job_title: job.title,
       job_slug: slug,
-      resume_url: publicUrl.publicUrl,
+      resume_url: filePath,
+      stage: "applied",
     });
 
-    if (error)
-      return NextResponse.json({ success: false, message: error.message });
+    if (error) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, message: err.message });
+  } catch (err) {
+    return NextResponse.json(
+      { success: false, message: err instanceof Error ? err.message : "Server error" },
+      { status: 500 }
+    );
   }
 }
-
-
-// import { NextResponse } from "next/server";
-// import { createClient } from "@supabase/supabase-js";
-
-// export async function POST(req: Request) {
-//   try {
-//     const body = await req.json();
-
-//     const supabase = createClient(
-//       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//       process.env.SUPABASE_SERVICE_ROLE_KEY!
-//     );
-
-//     const { slug, ...application } = body;
-
-//     const { data: job } = await supabase
-//       .from("job")
-//       .select("id, title")
-//       .eq("slug", slug)
-//       .single();
-
-//     const { data, error } = await supabase
-//       .from("applications")
-//       .insert({
-//         job_id: job?.id,
-//         job_slug: slug,
-//         job_title: job?.title,
-//         ...application,
-//       })
-//       .select();
-
-//     if (error) return NextResponse.json({ success: false, message: error.message });
-
-//     return NextResponse.json({ success: true, data });
-//   } catch (err: any) {
-//     return NextResponse.json({ success: false, message: err.message });
-//   }
-// }

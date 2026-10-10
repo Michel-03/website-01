@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { blogs } from "@/data/blogs";
 import Link from "next/link";
+import type { BlogPost } from "@/lib/blogs";
 
 /* simple inline helper */
 function timeAgo(dateString: string) {
@@ -23,8 +23,8 @@ function timeAgo(dateString: string) {
   return "Recently published";
 }
 
-export default function FeaturedBlogs() {
-  const featuredBlogs = blogs.filter((b) => b.featured);
+export default function FeaturedBlogs({ blogs }: { blogs: BlogPost[] }) {
+  const featuredBlogs = blogs;
   const [current, setCurrent] = useState(0);
 
   if (featuredBlogs.length === 0) return null;

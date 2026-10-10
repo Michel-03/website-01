@@ -14,11 +14,13 @@ import Testimonials from "../components/Home/Testinomials";
 import Flow from "../components/Home/Flowchat";
 import Package from "../components/Home/package";
 import ContactForm from "../components/Home/Contact";
+import LiveLinks from "../components/layout/LiveLinks";
 
 export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <LiveLinks />
       <PartnerLogo />
       <ServicesSection />
       <Inhouse />

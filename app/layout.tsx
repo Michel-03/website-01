@@ -1,10 +1,10 @@
 import "./globals.css";
-import Navbar from "../components/layout/Navbar";
-import Footer from "../components/layout/Footer";
+import SiteChrome from "../components/layout/SiteChrome";
 
 export const metadata = {
-  title: "YourCompany AI | Empowering Businesses with Intelligence",
-  description: "Official website for YourCompany AI solutions and consultancy.",
+  title: "Byte Analytics | AI for High-Profile Organizations",
+  description:
+    "Byte Analytics designs, builds, and operates AI, data, and automation systems for leadership teams.",
 };
 
 export default function RootLayout({
@@ -14,10 +14,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans bg-white text-gray-900">
-        <Navbar /> {/* Always at top */}
-        <main className="min-h-screen">{children}</main> {/* Page content */}
-        <Footer /> {/* Always at bottom */}
+      <body className="font-sans bg-[#fbfbfe] text-gray-900">
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

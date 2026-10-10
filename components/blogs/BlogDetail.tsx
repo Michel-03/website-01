@@ -1,20 +1,9 @@
-import { blogs } from "@/data/blogs";
-import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import type { BlogPost } from "@/lib/blogs";
 import RelatedBlogs from "./RelatedBlogs";
 import BlogShare from "./BlogShare";
 
-
-
-interface Props {
-  slug: string;
-}
-
-export default function BlogDetail({ slug }: Props) {
-  const blog = blogs.find((b) => b.slug === slug);
-
-  if (!blog) return notFound();
-
+export default function BlogDetail({ blog, related }: { blog: BlogPost; related: BlogPost[] }) {
   return (
     <article className="max-w-3xl mx-auto px-6 py-12">
         <BlogShare title={blog.title} slug={blog.slug} />
@@ -34,6 +23,15 @@ export default function BlogDetail({ slug }: Props) {
         By {blog.author} • {blog.publishedAt}
       </p>
 
+      {blog.sourceUrl && (
+        <p className="mb-8 rounded-xl border border-[#605BAD]/20 bg-[#f4f3fb] px-4 py-3 text-sm text-[#221c4a]">
+          Originally published on LinkedIn.{" "}
+          <a href={blog.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-[#605BAD]">
+            Read the original
+          </a>
+        </p>
+      )}
+
       {/* Cover Image */}
       <img
         src={blog.coverImage}
@@ -52,10 +50,7 @@ export default function BlogDetail({ slug }: Props) {
 
       {/* CTA */}
       <div className="mt-14 p-6 bg-gray-100 rounded-lg">
-        <RelatedBlogs
-        category={blog.category}
-        currentSlug={blog.slug}
-        />
+        <RelatedBlogs blogs={related} />
         <h3 className="text-xl font-semibold">
           Talk to Our Experts
         </h3>

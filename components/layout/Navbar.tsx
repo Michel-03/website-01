@@ -1,15 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Menu, X } from "lucide-react";
+import BrandMark from "./BrandMark";
 
 const navItems = [
   {
     label: "About us",
-    submenu: ["Overview", "Careers", "Blog", "Podcast", "FAQs"],
+    submenu: ["Overview", "How we work", "Careers", "Life at Byte Analytics", "Blog", "Podcast", "FAQs"],
   },
   {
     label: "Our services",
@@ -57,7 +57,7 @@ const navItems = [
       "Ai in Marketing",
     ],
   },
-  { label: "Case studies", href: "/" },
+  { label: "Case studies", href: "/case-studies" },
   { label: "Login", href: "/admin/login" },
 ];
 
@@ -65,10 +65,12 @@ const navItems = [
 const submenuRouteMap: Record<string, Record<string, string>> = {
   "About us": {
     Overview: "/about",
+    "How we work": "/how-we-work",
     Careers: "/careers",
+    "Life at Byte Analytics": "/life-at-byte",
     FAQs: "/FAQ",
     Blog: "/blog",
-    // Blog / Podcast can be added later if you have routes
+    Podcast: "/podcast",
   },
   "AI in industry": {
     Overview: "/ai-in-industry",
@@ -126,18 +128,7 @@ export default function Navbar() {
       <div className="lg:max-w-[75%] mx-auto px-6 py-3 flex lg:justify-between items-center">
         {/* LOGO */}
         <div className="flex-[1.2] flex justify-center lg:justify-start">
-          <Link
-            href="/"
-            className="cursor-pointer select-none transition hover:opacity-80"
-          >
-            <Image
-              src="/logo.png"
-              alt="YourCompany Logo"
-              width={180}
-              height={80}
-              priority
-            />
-          </Link>
+          <BrandMark />
         </div>
 
         {/* DESKTOP NAV */}

@@ -1,35 +1,54 @@
-import { NextResponse } from "next/server"; //to send the reply to the request
-import { createClient } from "@supabase/supabase-js"; //to establish a connection
+import { NextResponse } from "next/server";
+import { sendContactEmail } from "@/lib/contactMail";
+import { getSupabase } from "@/lib/supabaseclient";
 
-export async function POST(req:Request){
-    try{
-        const body = await req.json()
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const email = String(body.email ?? "").trim();
+    const message = String(body.message ?? "").trim();
 
-        //creating a  connection to the server or db
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-
-        const {data, error} = await supabase
-        .from("contact_form")
-        .insert({
-            first_name: body.firstName,
-            last_name: body.lastName,
-            email: body.email,
-            phone: body.phone,
-            message: body.message,
-        })
-        .select("*");
-
-        if (error) {
-            console.log(error);
-            return NextResponse.json({ success: false, error})
-        }
-        console.log("DATA:", data)
-        console.log("Error:", error)
-        return NextResponse.json({success: true})
-    }catch(e){
-        return NextResponse.json({success:false, error:e})
+    if (!email || !message) {
+      return NextResponse.json(
+        { success: false, error: "Email and message are required." },
+        { status: 400 }
+      );
     }
+
+    const inquiry = {
+      firstName: String(body.firstName ?? "").trim(),
+      lastName: String(body.lastName ?? "").trim(),
+      email,
+      phone: String(body.phone ?? "").trim(),
+      message,
+    };
+
+    const supabase = getSupabase();
+    const { error } = await supabase.from("contact_form").insert({
+      first_name: inquiry.firstName,
+      last_name: inquiry.lastName,
+      email: inquiry.email,
+      phone: inquiry.phone,
+      message: inquiry.message,
+    });
+
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    let mailed = true;
+    try {
+      await sendContactEmail(inquiry);
+    } catch (error) {
+      mailed = false;
+      console.error(error instanceof Error ? error.message : "Contact email failed");
+    }
+
+    return NextResponse.json({ success: true, mailed });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Server error" },
+      { status: 503 }
+    );
+  }
 }

@@ -22,9 +22,30 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgba(96, 91, 173, 0.16), transparent 60%),
+    radial-gradient(700px 360px at 100% 0%, rgba(45, 212, 191, 0.14), transparent 55%),
+    #fbfbfe;
   color: var(--foreground);
   font-family:"Manrope", "Arial", "Helvetica", sans-serif;
+}
+
+.reveal-section {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+.reveal-section.is-visible {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-section {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 html, body {

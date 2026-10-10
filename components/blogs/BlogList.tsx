@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { blogs } from "../../data/blogs";
+import type { BlogPost } from "@/lib/blogs";
 import BlogCard from "./BlogCard";
 import FeaturedBlogs from "./FeaturedBlogs";
 
 const BLOGS_PER_PAGE = 6;
 
-export default function BlogList() {
+export default function BlogList({ blogs }: { blogs: BlogPost[] }) {
   const featuredBlogs = useMemo(
     () => blogs.filter((b) => b.featured),
-    []
+    [blogs]
   );
 
   const normalBlogs = useMemo(
     () => blogs.filter((b) => !b.featured),
-    []
+    [blogs]
   );
 
   const totalPages = Math.ceil(
@@ -58,9 +58,15 @@ export default function BlogList() {
       {/* CONTENT */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         {/* FEATURED (STATIC) */}
+        {blogs.length === 0 && (
+          <p className="rounded-2xl bg-white px-6 py-10 text-gray-600">
+            New articles will appear here once they are published.
+          </p>
+        )}
+
         {featuredBlogs.length > 0 && (
           <div className="mb-20">
-            <FeaturedBlogs />
+            <FeaturedBlogs blogs={featuredBlogs} />
           </div>
         )}
 
