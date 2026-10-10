@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import HeroSection from "../../OurServices_components/AgnosticAI/Herosection";
 import AgnosticAICom from "../../OurServices_components/AgnosticAI/AgnosticAi";
 import Benifits from "../../OurServices_components/AgnosticAI/Benifits";
@@ -9,7 +10,9 @@ export default function AgnosticAI(){
         <HeroSection/>
         <AgnosticAICom/>
         <Benifits/>
-        <ServiceDetails/>
+        <Suspense>
+            <ServiceDetails/>
+        </Suspense>
         </>
     )
 }
