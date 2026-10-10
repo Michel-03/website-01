@@ -31,7 +31,7 @@ export default function PodcastPage() {
             Short executive briefings from the Byte Analytics team. Select an episode to read the discussion outline.
           </p>
         </div>
-        <div className="h-80 overflow-hidden rounded-[2rem] bg-white shadow-xl">
+        <div className="h-80 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0f0c29] via-[#1e1b4b] to-[#134e4a] shadow-xl shadow-[#605BAD]/30">
           <Scene3D />
         </div>
       </section>

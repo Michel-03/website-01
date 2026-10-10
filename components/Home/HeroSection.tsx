@@ -49,8 +49,10 @@ export default function HeroSection() {
                 </div>
             </div>
             {/* Right Image */}
-            <div className="relative hidden h-[420px] overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 shadow-2xl md:block">
-                <Scene3D />
+            <div className="relative hidden h-[420px] overflow-hidden rounded-[2rem] border border-[#605BAD]/30 bg-gradient-to-br from-[#0f0c29] via-[#1e1b4b] to-[#134e4a] shadow-2xl shadow-[#605BAD]/30 md:block">
+                <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-[#605BAD]/40 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-teal-400/25 blur-3xl" />
+                <Scene3D className="relative" />
             </div>
         </section>
     )

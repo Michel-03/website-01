@@ -40,7 +40,7 @@ export default function HeroSection() {
             <div className="absolute inset-0 rounded-full border-[18px] border-teal-300"></div>
 
             {/* IMAGE */}
-            <Scene3D className="absolute inset-6 rounded-full" />
+            <Scene3D className="absolute inset-6 rounded-full bg-gradient-to-br from-[#0f0c29] via-[#1e1b4b] to-[#134e4a]" />
           </div>
         </div>
       </div>
