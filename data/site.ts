@@ -1,4 +1,9 @@
+import { siteSettings } from "@/config/site";
+
 function resolveSiteUrl() {
+  const fromFile = siteSettings.publicUrl.trim();
+  if (fromFile) return fromFile.replace(/\/+$/, "");
+
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return explicit.replace(/\/+$/, "");
 
@@ -10,6 +15,6 @@ function resolveSiteUrl() {
 }
 
 export const siteConfig = {
-  name: "Byte Analytics",
+  name: siteSettings.name,
   url: resolveSiteUrl(),
 };

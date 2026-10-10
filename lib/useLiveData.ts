@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getBrowserSupabase } from "./supabaseBrowser";
 
 type Options<T> = {
@@ -12,6 +12,7 @@ type Options<T> = {
 export type LiveStatus = "connecting" | "live" | "polling" | "offline";
 
 export function useLiveData<T>(url: string, options: Options<T>) {
+  const reactId = useId();
   const { intervalMs = 8000, realtimeTables = [], select } = options;
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
@@ -60,22 +61,29 @@ export function useLiveData<T>(url: string, options: Options<T>) {
 
     const supabase = getBrowserSupabase();
     const tables = tablesKey ? tablesKey.split(",") : [];
-    const channel =
-      supabase && tables.length
-        ? tables
-            .reduce(
-              (current, table) =>
-                current.on(
-                  "postgres_changes",
-                  { event: "*", schema: "public", table },
-                  () => refresh()
-                ),
-              supabase.channel(`live:${url}:${tablesKey}`)
-            )
-            .subscribe((state) => {
-              if (state === "SUBSCRIBED") setStatus("live");
-            })
-        : null;
+    let channel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
+    if (supabase && tables.length) {
+      try {
+        // Each component needs its own channel. Supabase reuses a channel by name,
+        // and adding another listener after subscribe() crashes the page.
+        let next = supabase.channel(`live:${reactId}:${url}:${tablesKey}`);
+        for (const table of tables) {
+          next = next.on(
+            "postgres_changes",
+            { event: "*", schema: "public", table },
+            () => refresh()
+          );
+        }
+        channel = next.subscribe((state) => {
+          if (state === "SUBSCRIBED") setStatus("live");
+        });
+      } catch (error) {
+        console.error(
+          "Live updates unavailable:",
+          error instanceof Error ? error.message : error
+        );
+      }
+    }
 
     return () => {
       window.clearInterval(timer);
@@ -83,7 +91,7 @@ export function useLiveData<T>(url: string, options: Options<T>) {
       document.removeEventListener("visibilitychange", tick);
       if (supabase && channel) supabase.removeChannel(channel);
     };
-  }, [refresh, intervalMs, tablesKey, url]);
+  }, [reactId, refresh, intervalMs, tablesKey, url]);
 
   return { data, error, loading, lastUpdated, status, refresh };
 }

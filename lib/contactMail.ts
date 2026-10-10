@@ -1,7 +1,12 @@
+import { siteSettings } from "@/config/site";
 import { siteConfig } from "@/data/site";
 import { readLocalEnv } from "@/lib/localAdmin";
 
-const DEFAULT_INBOX = "nagendragampala03@gmail.com";
+function inboxAddress() {
+  const fromFile = siteSettings.contactEmail.trim();
+  if (fromFile) return fromFile;
+  return readLocalEnv("CONTACT_TO_EMAIL");
+}
 
 export type ContactMail = {
   firstName: string;
@@ -12,7 +17,10 @@ export type ContactMail = {
 };
 
 export async function sendContactEmail(fields: ContactMail) {
-  const inbox = readLocalEnv("CONTACT_TO_EMAIL") || DEFAULT_INBOX;
+  const inbox = inboxAddress();
+  if (!inbox) {
+    throw new Error("No contact email is set in config/site.ts.");
+  }
   const name = [fields.firstName, fields.lastName].filter(Boolean).join(" ") || "Website visitor";
 
   const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(inbox)}`, {

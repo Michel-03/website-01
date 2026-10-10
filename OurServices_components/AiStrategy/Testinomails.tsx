@@ -40,13 +40,7 @@ export default function Testimonials() {
 
     const [current, setCurrent] = useState(0);
     const [direction, setDirection] = useState<"next" | "prev" | null>(null);
-    const timeoutRef = useRef<any>(null);
-
-    // Auto play every 6 seconds
-    useEffect(() => {
-        timeoutRef.current = setTimeout(() => handleNext(), 6000);
-        return () => clearTimeout(timeoutRef.current);
-    }, [current]);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleNext = () => {
         setDirection("next");
@@ -57,6 +51,13 @@ export default function Testimonials() {
         setDirection("prev");
         setCurrent((prev) => (prev - 1 + testimonials.length) % testimonials.length);
     };
+
+    useEffect(() => {
+        timeoutRef.current = setTimeout(() => handleNext(), 6000);
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, [current]);
 
     return (
         <section className="py-20 bg-white flex flex-col items-center px-4">

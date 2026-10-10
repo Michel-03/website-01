@@ -10,7 +10,7 @@ export default function SiteChrome({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const isAdmin = pathname.startsWith("/admin");
 
   useEffect(() => {
