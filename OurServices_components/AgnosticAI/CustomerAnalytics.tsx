@@ -1,6 +1,7 @@
 "use client";
+"use no memo";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 
@@ -97,7 +98,7 @@ const serviceData = [
   }
 ];
 
-export default function ServiceDetails() {
+function ServiceDetailsContent() {
   const searchParams = useSearchParams();
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -206,6 +207,14 @@ export default function ServiceDetails() {
         </div>
       </div>
     </section>
+  );
+}
+
+export default function ServiceDetails() {
+  return (
+    <Suspense fallback={<div className="px-6 py-20 text-center text-sm text-gray-500">Loading services...</div>}>
+      <ServiceDetailsContent />
+    </Suspense>
   );
 }
 
