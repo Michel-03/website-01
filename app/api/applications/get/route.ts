@@ -1,29 +1,33 @@
 import { NextResponse } from "next/server";
-// import { createClient } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabaseclient";
+import { assertAdmin } from "@/lib/requireAdmin";
+import { getSupabase } from "@/lib/supabaseclient";
+import { signResumeUrl } from "@/lib/resumeLinks";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const id = url.searchParams.get("id");
+  const denied = await assertAdmin();
+  if (denied) return denied;
 
+  const id = new URL(req.url).searchParams.get("id");
   if (!id) {
-    return NextResponse.json({ success: false, message: "Missing ID" });
+    return NextResponse.json({ success: false, message: "Missing ID" }, { status: 400 });
   }
 
-//   const supabase = createClient(
-//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-//   );
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("applications").select("*").eq("id", id).single();
 
-  const { data, error } = await supabase
-    .from("applications")
-    .select("*")
-    .eq("id", id)
-    .single();
+    if (error || !data) {
+      return NextResponse.json({ success: false, message: error?.message ?? "Not found" }, { status: 404 });
+    }
 
-  if (error) {
-    return NextResponse.json({ success: false, message: error.message });
+    return NextResponse.json({
+      success: true,
+      data: { ...data, resume_url: await signResumeUrl(supabase, data.resume_url) },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : "Server error" },
+      { status: 503 }
+    );
   }
-
-  return NextResponse.json({ success: true, data });
 }

@@ -1,22 +1,32 @@
 import { NextResponse } from "next/server";
-// import { createClient } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabaseclient";
+import { assertAdmin } from "@/lib/requireAdmin";
+import { getSupabase } from "@/lib/supabaseclient";
+
+const STAGES = ["applied", "reviewed", "shortlisted", "rejected", "hired"];
 
 export async function POST(req: Request) {
-  const { id, stage } = await req.json();
+  const denied = await assertAdmin();
+  if (denied) return denied;
 
-//   const supabase = createClient(
-//     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-//   );
+  try {
+    const { id, stage } = await req.json();
 
-  const { error } = await supabase
-    .from("applications")
-    .update({ stage })
-    .eq("id", id);
+    if (!id || !STAGES.includes(stage)) {
+      return NextResponse.json({ success: false, message: "Invalid application or stage." }, { status: 400 });
+    }
 
-  if (error)
-    return NextResponse.json({ success: false, message: error.message });
+    const supabase = getSupabase();
+    const { error } = await supabase.from("applications").update({ stage }).eq("id", id);
 
-  return NextResponse.json({ success: true });
+    if (error) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: error instanceof Error ? error.message : "Server error" },
+      { status: 503 }
+    );
+  }
 }

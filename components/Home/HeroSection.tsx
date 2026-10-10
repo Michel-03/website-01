@@ -1,4 +1,5 @@
-import Image from "next/image";  // replaces the html img tag for optimized image loading
+import Link from "next/link";
+import Scene3D from "../visual/Scene3D";
 
 export default function HeroSection() {
     return (
@@ -39,20 +40,17 @@ export default function HeroSection() {
                     >
                         CONTACT US
                     </a>
-                    <button className="px-5 py-2 text-xs border border-brand-indigo-500 t-brand-primary hover:bg-[#605BAD] hover:text-white rounded-md cursor-pointer">
+                    <Link
+                        href="/contact"
+                        className="inline-flex items-center px-5 py-2 text-xs border border-[#605BAD] text-[#605BAD] hover:bg-[#605BAD] hover:text-white rounded-md"
+                    >
                         BOOK AI CONSULTATION
-                    </button>
+                    </Link>
                 </div>
             </div>
             {/* Right Image */}
-            <div className="relative hidden md:flex flex justify-center items-center">
-                <Image
-                    src="/home1.png"
-                    alt="AI Consultancy Illustration"
-                    width={500}
-                    height={500}
-                    className="rounded-lg"
-                />
+            <div className="relative hidden h-[420px] overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 shadow-2xl md:block">
+                <Scene3D />
             </div>
         </section>
     )
