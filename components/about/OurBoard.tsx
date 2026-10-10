@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Linkedin } from "lucide-react";
 
 const teamMembers = [
@@ -108,7 +109,7 @@ export default function OurBoard() {
           ))}
         </div>
         <div className="mt-3 flex">  
-            <h4 className="inline-block bg-gray-200 rounded-sm p-3 text-xs mt-5 flex mx-auto">Interested in joining our Team? <a href="/careers" className="text-blue-800">View Careers</a></h4>
+            <h4 className="inline-block bg-gray-200 rounded-sm p-3 text-xs mt-5 flex mx-auto">Interested in joining our Team? <Link href="/careers" className="text-blue-800">View Careers</Link></h4>
         </div>
 
      </div>

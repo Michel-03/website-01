@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { submitContact } from "@/lib/submitContact";
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({
@@ -13,29 +14,26 @@ export default function ContactSection() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [isError, setIsError] = useState(false);
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setSuccess("");
 
-    const res = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    const data = await res.json();
+    const result = await submitContact(formData);
     setLoading(false);
 
-    if (data.success) {
-    const displayName = `${formData.firstName} ${formData.lastName}`.trim();
-    setSuccess(
-      `Thank you${displayName ? `, ${displayName}` : ""}! Our team will contact you soon.`
-    );
+    if (result.ok) {
+      const displayName = `${formData.firstName} ${formData.lastName}`.trim();
+      setIsError(false);
+      setSuccess(
+        `Thank you${displayName ? `, ${displayName}` : ""}! Our team will contact you soon.`
+      );
       setFormData({
         firstName: "",
         lastName: "",
@@ -44,7 +42,8 @@ export default function ContactSection() {
         message: "",
       });
     } else {
-      setSuccess("Something went wrong. Try again.");
+      setIsError(true);
+      setSuccess(result.error);
     }
   };
 
@@ -131,15 +130,6 @@ export default function ContactSection() {
           />
         </div>
 
-        {/* CAPTCHA Placeholder */}
-        <div className="md:col-span-2 flex justify-start">
-          <div className="border rounded-md p-3 bg-gray-100">
-            <span className="text-xs text-gray-500">
-              reCAPTCHA placeholder
-            </span>
-          </div>
-        </div>
-
         {/* MESSAGE */}
         <div className="md:col-span-2">
           <label className="text-sm font-medium text-gray-600">
@@ -167,7 +157,7 @@ export default function ContactSection() {
         </div>
 
         {success && (
-          <p className="text-sm text-green-600 mt-4 md:col-span-2">{success}</p>
+          <p className={`text-sm mt-4 md:col-span-2 ${isError ? "text-red-600" : "text-green-600"}`}>{success}</p>
         )}
       </form>
       </div>

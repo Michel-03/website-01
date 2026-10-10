@@ -5,8 +5,8 @@ let client: SupabaseClient | null = null;
 let clientKey = "";
 
 export function getSupabase() {
-  const url = readLocalEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const key = readLocalEnv("SUPABASE_SERVICE_ROLE_KEY") || readLocalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const url = readLocalEnv("NEXT_PUBLIC_SUPABASE_URL").replace(/\/+$/, "");
+  const key = (readLocalEnv("SUPABASE_SERVICE_ROLE_KEY") || readLocalEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")).replace(/^Bearer\s+/i, "");
 
   if (!url || !key) {
     throw new Error("Supabase environment variables are not configured.");

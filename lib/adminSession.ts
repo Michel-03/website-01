@@ -9,7 +9,11 @@ type SessionPayload = {
 const encoder = new TextEncoder();
 
 export function getSessionSecret() {
-  return process.env.ADMIN_SESSION_SECRET?.trim() || "";
+  const value = process.env.ADMIN_SESSION_SECRET?.trim() || "";
+  const quoted =
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"));
+  return quoted ? value.slice(1, -1).trim() : value;
 }
 
 export function adminSessionCookie(value: string, maxAge: number) {
@@ -17,7 +21,7 @@ export function adminSessionCookie(value: string, maxAge: number) {
     name: ADMIN_SESSION_COOKIE,
     value,
     httpOnly: true,
-    sameSite: "strict" as const,
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge,

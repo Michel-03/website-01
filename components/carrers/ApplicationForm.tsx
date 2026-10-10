@@ -12,7 +12,7 @@ type JobSummary = {
   salary?: string | null;
 };
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_EXTENSIONS = ["pdf", "doc", "docx"];
 const COVER_LIMIT = 2000;
 
@@ -37,7 +37,7 @@ function formatSize(bytes: number) {
 function resumeProblem(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   if (!ACCEPTED_EXTENSIONS.includes(extension)) return "Upload a PDF or Word document.";
-  if (file.size > MAX_BYTES) return "The file is larger than 5 MB.";
+  if (file.size > MAX_BYTES) return "The file is larger than 4 MB.";
   return null;
 }
 
@@ -107,7 +107,10 @@ export default function ApplicationForm({ job }: { job: JobSummary }) {
 
     try {
       const response = await fetch("/api/applications", { method: "POST", body: data });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({
+        success: false,
+        message: response.status === 413 ? "The resume is too large to upload." : undefined,
+      }));
       if (!result.success) {
         setSubmitError(result.message || "Your application could not be sent. Please try again.");
         setLoading(false);
@@ -154,7 +157,7 @@ export default function ApplicationForm({ job }: { job: JobSummary }) {
           </div>
         </Section>
 
-        <Section number={3} title="Resume" description="PDF or Word, up to 5 MB.">
+        <Section number={3} title="Resume" description="PDF or Word, up to 4 MB.">
           <div id="field-resume">
             {resume ? (
               <div className="flex items-center gap-4 rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
