@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { getLocalAdminCredentials } from "../../../../lib/localAdmin";
-import { getSupabase } from "../../../../lib/supabaseclient";
+import {
+  ADMIN_SESSION_MAX_AGE,
+  adminSessionCookie,
+  createAdminSession,
+  getSessionSecret,
+} from "@/lib/adminSession";
+import { clearLoginAttempt, consumeLoginAttempt } from "@/lib/loginRateLimit";
+import { getLocalAdminCredentials } from "@/lib/localAdmin";
+import { hashPassword, isPasswordHash, safeEqual, verifyPassword } from "@/lib/password";
+import { getSupabase } from "@/lib/supabaseclient";
 
 function matchesLocalAdmin(email: string, password: string) {
   const credentials = getLocalAdminCredentials();
@@ -8,8 +16,34 @@ function matchesLocalAdmin(email: string, password: string) {
   const adminPassword = credentials.password;
 
   if (!adminEmail || !adminPassword) return false;
+  return safeEqual(email.trim().toLowerCase(), adminEmail) && safeEqual(password, adminPassword);
+}
 
-  return email.trim().toLowerCase() === adminEmail && password === adminPassword;
+function attemptKey(request: Request, email: string) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = forwarded || request.headers.get("x-real-ip") || "unknown";
+  return `${ip}:${email.trim().toLowerCase()}`;
+}
+
+async function authenticateDatabaseAdmin(email: string, password: string) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("id, email, password")
+    .eq("email", email.trim())
+    .maybeSingle();
+
+  if (error) return { status: "unavailable" as const };
+  if (!data?.password || !(await verifyPassword(password, data.password))) {
+    return { status: "invalid" as const };
+  }
+
+  if (!isPasswordHash(data.password)) {
+    const hashed = await hashPassword(password);
+    await supabase.from("admin_users").update({ password: hashed }).eq("id", data.id);
+  }
+
+  return { status: "ok" as const, email: String(data.email || email) };
 }
 
 export async function POST(request: Request) {
@@ -17,6 +51,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const email = String(body.email ?? "");
     const password = String(body.password ?? "");
+    const key = attemptKey(request, email);
+    const limit = consumeLoginAttempt(key);
+
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { success: false, error: "Too many login attempts. Try again later." },
+        { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+      );
+    }
 
     if (!email.trim() || !password) {
       return NextResponse.json(
@@ -25,26 +68,27 @@ export async function POST(request: Request) {
       );
     }
 
-    let authenticated = matchesLocalAdmin(email, password);
+    if (!getSessionSecret()) {
+      return NextResponse.json(
+        { success: false, error: "Admin login is not connected. Add ADMIN_SESSION_SECRET." },
+        { status: 503 }
+      );
+    }
 
-    if (!authenticated) {
+    let authenticatedEmail = "";
+
+    if (matchesLocalAdmin(email, password)) {
+      authenticatedEmail = email.trim().toLowerCase();
+    } else {
       try {
-        const supabase = getSupabase();
-        const { data, error } = await supabase
-          .from("admin_users")
-          .select("id, email")
-          .eq("email", email.trim())
-          .eq("password", password)
-          .maybeSingle();
-
-        if (error) {
+        const result = await authenticateDatabaseAdmin(email, password);
+        if (result.status === "unavailable") {
           return NextResponse.json(
             { success: false, error: "The admin database could not be reached." },
             { status: 503 }
           );
         }
-
-        authenticated = Boolean(data);
+        if (result.status === "ok") authenticatedEmail = result.email;
       } catch {
         const credentials = getLocalAdminCredentials();
         if (!credentials.email || !credentials.password) {
@@ -60,132 +104,27 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!authenticated) {
+    if (!authenticatedEmail) {
       return NextResponse.json(
         { success: false, error: "Invalid email or password." },
         { status: 401 }
       );
     }
 
-    // Create JSON response
-    const response = NextResponse.json({
-      success: true,
-    });
-
-    // Set HttpOnly cookie
+    clearLoginAttempt(key);
+    const response = NextResponse.json({ success: true });
+    response.cookies.set(adminSessionCookie(await createAdminSession(authenticatedEmail), ADMIN_SESSION_MAX_AGE));
     response.cookies.set({
       name: "admin_logged_in",
-      value: "true",
+      value: "",
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 0,
     });
-
     return response;
-  } catch (err) {
-    return NextResponse.json(
-      { success: false, error: "Server error" },
-      { status: 500 }
-    );
+  } catch {
+    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
   }
 }
-
-
-
-
-// import { NextResponse } from "next/server";
-// import { supabase } from "@/lib/supabaseclient"; // your supabase client
-
-// export async function POST(request: Request) {
-//   try {
-//     const body = await request.json();
-//     console.log(body)
-//     const { email, password } = body;
-
-//     // Check admin table
-//     const { data, error } = await supabase
-//       .from("admin_users")          // <-- your admin table
-//       .select("*")
-//       .eq("email", email)
-//       .eq("password", password)
-//       .single();
-
-//     if (error || !data) {
-//       return NextResponse.json({
-//         success: false,
-//         error: "Invalid credentials",
-//       });
-//     }
-
-//     // return NextResponse.json({
-//     //   success: true,
-//     //   user: data,
-//     // });
-//     const response = NextResponse.json({ success: true });
-
-//     response.cookies.set({
-//         name: "admin_logged_in",
-//         value: "true",
-//         httpOnly: true,
-//         path: "/",
-//         sameSite: "lax",
-//         maxAge: 60 * 60 * 24, // 1 day
-//     });
-
-//     return response;
-
-//   } catch (err) {
-//     return NextResponse.json(
-//       { success: false, error: "Server error" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-
-// // // src/app/api/admin/login/route.ts
-// // import { NextResponse } from "next/server";
-// // import type { NextRequest } from "next/server";
-// // import { supabase } from "@/lib/supabaseclient";
-
-// // export async function POST(req: NextRequest){
-// //     try{
-// //         const body =  await req.json();
-// //         const{email, password} = body;
-
-// //         if(!email || !password){
-// //             return NextResponse.json({error: "Missing credentials"}, {status: 400});
-// //         }
-
-// //         const {data, error} = await supabase
-// //         .from("admin_users")
-// //         .select("id,email")
-// //         .eq("email", email)
-// //         .eq("password", password)
-// //         .single();
-
-// //         if (error || !data){
-// //             return NextResponse.json({error:"Invalid email or password"}, {status:401});
-// //         }
-
-// //          // create HttpOnly cookie to be readable by middleware
-// //         const response = NextResponse.json({success:true})
-
-// //         // Set secure attributes: HttpOnly, SameSite=Lax, path=/, set max-age (secs)
-// //         response.cookies.set({
-// //             name: "admin_logged_in",
-// //             value: "true",
-// //             httpOnly: true,
-// //             path: "/",
-// //             sameSite: "lax",
-// //             maxAge: 60 * 60 * 24, // 1 day
-// //             // secure: true, // enable in production with https
-// //         });
-// //         return response;
-
-// //     }catch (err) {
-// //     return NextResponse.json({ error: "Server error" }, { status: 500 });
-// //   }
-// // }

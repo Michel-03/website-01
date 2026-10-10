@@ -36,7 +36,7 @@ export default function PageHero({
             </div>
           )}
         </div>
-        <div className="relative hidden h-80 overflow-hidden rounded-[2rem] border border-white bg-white/70 shadow-2xl shadow-[#605BAD]/10 md:block">
+        <div className="relative hidden h-80 overflow-hidden rounded-[2rem] border border-[#605BAD]/30 bg-gradient-to-br from-[#0f0c29] via-[#1e1b4b] to-[#134e4a] shadow-2xl shadow-[#605BAD]/30 md:block">
           <Scene3D />
         </div>
       </div>

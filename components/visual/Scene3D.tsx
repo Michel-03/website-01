@@ -91,8 +91,8 @@ export default function Scene3D({
           const limit = scale * 0.22;
 
           if (distance < limit) {
-            const alpha = (1 - distance / limit) * 0.45;
-            context.strokeStyle = `rgba(96, 91, 173, ${alpha})`;
+            const alpha = (1 - distance / limit) * 0.6;
+            context.strokeStyle = `rgba(167, 139, 250, ${alpha})`;
             context.lineWidth = Math.max(1, width / 900);
             context.beginPath();
             context.moveTo(start.x, start.y);
@@ -104,7 +104,7 @@ export default function Scene3D({
 
       projected.forEach((point) => {
         context.fillStyle =
-          point.z > 0 ? "rgba(45, 212, 191, 0.95)" : "rgba(96, 91, 173, 0.85)";
+          point.z > 0 ? "rgba(94, 234, 212, 1)" : "rgba(167, 139, 250, 0.85)";
         context.beginPath();
         context.arc(point.x, point.y, (point.z + 1.5) * (width / 900), 0, Math.PI * 2);
         context.fill();
