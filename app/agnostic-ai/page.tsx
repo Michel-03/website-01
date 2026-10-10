@@ -10,7 +10,7 @@ export default function AgnosticAI(){
         <HeroSection/>
         <AgnosticAICom/>
         <Benifits/>
-        <Suspense>
+        <Suspense fallback={<div className="px-6 py-20 text-center text-sm text-gray-500">Loading services...</div>}>
             <ServiceDetails/>
         </Suspense>
         </>
